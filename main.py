@@ -1,146 +1,62 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel
+from rura import Rura
+from zbiornik import Zbiornik
+from kociol import Kociol
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QSlider
 from PyQt5.QtCore import Qt, QTimer, QPointF
 from PyQt5.QtGui import QPainter, QColor, QPen, QPainterPath, QFont
-
-# --- KLASA RURA ---
-class Rura:
-    def __init__(self, punkty, grubosc=12, kolor=Qt.gray):
-        self.punkty = [QPointF(float(p[0]), float(p[1])) for p in punkty]
-        self.grubosc = grubosc
-        self.kolor_rury = QColor(80, 80, 80)
-        self.kolor_cieczy = QColor(0, 180, 255)
-        self.czy_plynie = False
-
-    def ustaw_przeplyw(self, plynie):
-        self.czy_plynie = plynie
-
-    def draw(self, painter):
-        if len(self.punkty) < 2:
-            return
-
-        path = QPainterPath()
-        path.moveTo(self.punkty[0])
-        for p in self.punkty[1:]:
-            path.lineTo(p)
-
-        # 1. Rysowanie obudowy rury
-        pen_rura = QPen(self.kolor_rury, self.grubosc, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
-        painter.setPen(pen_rura)
-        painter.setBrush(Qt.NoBrush)
-        painter.drawPath(path)
-
-        # 2. Rysowanie cieczy w środku
-        if self.czy_plynie:
-            pen_ciecz = QPen(self.kolor_cieczy, self.grubosc - 4, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
-            painter.setPen(pen_ciecz)
-            painter.drawPath(path)
-
-
-# --- KLASA ZBIORNIK ---
-class Zbiornik:
-    def __init__(self, x, y, width=100, height=140, nazwa=""):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.nazwa = nazwa
-        self.pojemnosc = 100.0
-        self.aktualna_ilosc = 0.0
-        self.poziom = 0.0
-
-    def dodaj_ciecz(self, ilosc):
-        wolne = self.pojemnosc - self.aktualna_ilosc
-        dodano = min(ilosc, wolne)
-        self.aktualna_ilosc += dodano
-        self.aktualizuj_poziom()
-        return dodano
-
-    def usun_ciecz(self, ilosc):
-        usunieto = min(ilosc, self.aktualna_ilosc)
-        self.aktualna_ilosc -= usunieto
-        self.aktualizuj_poziom()
-        return usunieto
-
-    def aktualizuj_poziom(self):
-        self.poziom = self.aktualna_ilosc / self.pojemnosc
-
-    def czy_pusty(self):
-        return self.aktualna_ilosc <= 0
-
-    def czy_pelny(self):
-        return self.aktualna_ilosc >= self.pojemnosc
-
-    def punkt_gora_srodek(self):
-        return (self.x + self.width / 2, self.y)
-
-    def punkt_dol_srodek(self):
-        return (self.x + self.width / 2, self.y + self.height)
-
-    def draw(self, painter):
-        # 1. Rysowanie cieczy
-        if self.poziom > 0:
-            h_cieczy = self.height * self.poziom
-            y_start = self.y + self.height - h_cieczy
-            painter.setPen(Qt.NoPen)
-            painter.setBrush(QColor(0, 120, 255, 200))
-            painter.drawRect(int(self.x+3), int(y_start), int(self.width - 6), int(h_cieczy))
-
-        # 2. Rysowanie obrysu
-        pen = QPen(Qt.white, 3)
-        painter.setPen(pen)
-        painter.setBrush(Qt.NoBrush)
-        painter.drawRect(int(self.x), int(self.y), int(self.width), int(self.height))
-
-        # 3. Podpis nad zbiornikiem
-        painter.setPen(Qt.white)
-        font = QFont("Arial", 10, QFont.Bold)
-        painter.setFont(font)
-        painter.drawText(int(self.x), int(self.y - 10), self.nazwa)
-
+WIDTH = 900
+HEIGHT = 600
+KOCIOL_POSX = WIDTH/2
+KOCIOL_POSY = 140+(HEIGHT/3)
+ZBIORNIK_POSX = WIDTH/2
+ZBIORNIK_POSY = HEIGHT/3
 
 # --- GŁÓWNA KLASA SYMULACJI ---
 class SymulacjaKaskady(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Zbiorniki")
-        self.setFixedSize(900, 600)
+        self.setFixedSize(WIDTH, HEIGHT)
         self.setStyleSheet("background-color: #2b2b2b;")
 
+        # --- Konfiguracja kotła ---
+
+        self.k1 = Kociol(KOCIOL_POSX, KOCIOL_POSY, nazwa="Kocioł")
+
         # --- Konfiguracja Zbiorników ---
-        self.z1 = Zbiornik(50, 50, nazwa="Zbiornik 1")
+        self.z1 = Zbiornik(ZBIORNIK_POSX, ZBIORNIK_POSY, nazwa="Zbiornik 1")
         self.z1.aktualna_ilosc = 100.0 
         self.z1.aktualizuj_poziom()
 
-        self.z2 = Zbiornik(350, 200, nazwa="Zbiornik 2")
-        self.z2.aktualna_ilosc = 0.0 
-        self.z2.aktualizuj_poziom()
-
-        self.z3 = Zbiornik(650, 350, nazwa="Zbiornik 3")
-        self.z3.aktualna_ilosc = 0.0 
-        self.z3.aktualizuj_poziom()
-
-        self.zbiorniki = [self.z1, self.z2, self.z3]
+        self.zbiorniki = [self.z1]
 
         # --- Konfiguracja Rur ---
-        p_start = self.z1.punkt_dol_srodek()
-        p_koniec = self.z2.punkt_gora_srodek()
+        p_start = self.z1.punkt_gora_srodek()
+        p_koniec = (100,100)
         mid_y = (p_start[1] + p_koniec[1]) / 2
         
         self.rura1 = Rura([p_start, (p_start[0], mid_y), (p_koniec[0], mid_y), p_koniec])
-
+        """
         p_start2 = self.z2.punkt_dol_srodek()
         p_koniec2 = self.z3.punkt_gora_srodek()
         mid_y2 = (p_start2[1] + p_koniec2[1]) / 2
 
-        self.rura2 = Rura([p_start2, (p_start2[0], mid_y2), (p_koniec2[0], mid_y2), p_koniec2])
-        self.rury = [self.rura1, self.rura2]
+        self.rura2 = Rura([p_start2, (p_start2[0], mid_y2), (p_koniec2[0], mid_y2), p_koniec2])"""
+        self.rury = [] 
 
         # --- Przyciski ---
         self.btn = QPushButton("START", self)
         self.btn.setGeometry(30, 520, 100, 50)
         self.btn.setStyleSheet("background-color: yellow; color: black; font-size: 14px")
         self.btn.clicked.connect(self.przelacz_symulacje)
+
+        # --- Suwaki ---
+        self.suwak = QSlider(Qt.Horizontal, self)
+        self.suwak.setGeometry(int(KOCIOL_POSX), int(KOCIOL_POSY)+200, 100, 20)
+        self.suwak.setMinimum(0)
+        self.suwak.setMaximum(500)
+        self.suwak.valueChanged.connect(self.k1.ustaw_temp)
 
         # --- Timer ---
         self.timer = QTimer()
@@ -158,7 +74,13 @@ class SymulacjaKaskady(QWidget):
         self.running = not self.running
 
     def logika_przeplywu(self):
-        # Z1 -> Z2
+        #K1 -> Z1
+        if self.k1.temperatura > self.z1.temperatura:
+            przyrost = (self.k1.temperatura - self.z1.temperatura)/500
+            self.z1.dodaj_temp(przyrost)
+        self.update()
+
+        """# Z1 -> Z2
         plynie_1 = False
         if not self.z1.czy_pusty() and not self.z2.czy_pelny():
             ilosc = self.z1.usun_ciecz(self.flow_speed)
@@ -174,7 +96,7 @@ class SymulacjaKaskady(QWidget):
             plynie_2 = True
         self.rura2.ustaw_przeplyw(plynie_2)
 
-        self.update()
+        self.update() """
 
     def paintEvent(self, event):
         p = QPainter(self)
@@ -185,6 +107,7 @@ class SymulacjaKaskady(QWidget):
             r.draw(p)
         for z in self.zbiorniki:
             z.draw(p)
+        self.k1.draw(p)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
