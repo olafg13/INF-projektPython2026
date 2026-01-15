@@ -30,12 +30,6 @@ class Kociol:
         self.temperatura -= usunieto
         return usunieto
 
-    def punkt_gora_srodek(self):
-        return (self.x + self.width / 2, self.y)
-
-    def punkt_dol_srodek(self):
-        return (self.x + self.width / 2, self.y + self.height)
-
     def draw(self, painter):
 
         # 1. Rysowanie ognia

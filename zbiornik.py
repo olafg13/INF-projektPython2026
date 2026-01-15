@@ -15,9 +15,11 @@ class Zbiornik:
         self.aktualna_ilosc = 0.0
         self.poziom = 0.0
         self.temperatura = 0
+        self.aktualna_ilosc_pary = 0.0
+        self.poziom_pary = 0.0
 
     def dodaj_ciecz(self, ilosc):
-        wolne = self.pojemnosc - self.aktualna_ilosc
+        wolne = self.pojemnosc - self.aktualna_ilosc - self.aktualna_ilosc_pary
         dodano = min(ilosc, wolne)
         self.aktualna_ilosc += dodano
         self.aktualizuj_poziom()
@@ -26,6 +28,19 @@ class Zbiornik:
     def usun_ciecz(self, ilosc):
         usunieto = min(ilosc, self.aktualna_ilosc)
         self.aktualna_ilosc -= usunieto
+        self.aktualizuj_poziom()
+        return usunieto
+    
+    def dodaj_pare(self, ilosc):
+        wolne = self.pojemnosc - self.aktualna_ilosc - self.aktualna_ilosc_pary
+        dodano = min(ilosc, wolne)
+        self.aktualna_ilosc_pary += dodano
+        self.aktualizuj_poziom()
+        return dodano
+
+    def usun_pare(self, ilosc):
+        usunieto = min(ilosc, self.aktualna_ilosc_pary)
+        self.aktualna_ilosc_pary -= usunieto
         self.aktualizuj_poziom()
         return usunieto
     
@@ -39,12 +54,13 @@ class Zbiornik:
 
     def aktualizuj_poziom(self):
         self.poziom = self.aktualna_ilosc / self.pojemnosc
+        self.poziom_pary = self.aktualna_ilosc_pary / self.pojemnosc
 
     def czy_pusty(self):
-        return self.aktualna_ilosc <= 0
+        return self.aktualna_ilosc <= 0 and self.aktualna_ilosc_pary <= 0
 
     def czy_pelny(self):
-        return self.aktualna_ilosc >= self.pojemnosc
+        return self.aktualna_ilosc >= self.pojemnosc and self.aktualna_ilosc_pary >= 0
 
     def punkt_gora_srodek(self):
         return (self.x + self.width / 2, self.y)
@@ -61,15 +77,25 @@ class Zbiornik:
             painter.setBrush(QColor(0, 120, 255, 200))
             painter.drawRect(int(self.x+3), int(y_start), int(self.width - 6), int(h_cieczy))
 
-        # 2. Rysowanie obrysu
+        # 2. Rysowanie pary
+        if self.poziom_pary > 0:
+            h_pary = self.height * self.poziom_pary
+            y_start = self.y
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(QColor(200, 200, 200, 120))
+            painter.drawRect(int(self.x+3), int(y_start), int(self.width - 6), int(h_pary))
+
+        # 3. Rysowanie obrysu
         pen = QPen(Qt.white, 3)
         painter.setPen(pen)
         painter.setBrush(Qt.NoBrush)
         painter.drawRect(int(self.x), int(self.y), int(self.width), int(self.height))
 
-        # 3. Podpis nad zbiornikiem
+        # 4. Podpis nad zbiornikiem
         painter.setPen(Qt.white)
         font = QFont("Arial", 10, QFont.Bold)
         painter.setFont(font)
-        painter.drawText(int(self.x), int(self.y - 25), self.nazwa)
+        painter.drawText(int(self.x), int(self.y - 55), self.nazwa)
+        painter.drawText(int(self.x), int(self.y - 40), str(int(self.poziom*100))+"% wody")
+        painter.drawText(int(self.x), int(self.y - 25), str(int(self.poziom_pary*100))+"% pary")
         painter.drawText(int(self.x), int(self.y - 10), str(int(self.temperatura))+"°C")

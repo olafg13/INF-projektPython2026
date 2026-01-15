@@ -11,7 +11,8 @@ class Rura:
         self.grubosc = grubosc
         self.kolor_rury = QColor(80, 80, 80)
         self.kolor_cieczy = QColor(0, 180, 255)
-        self.czy_plynie = False
+        self.kolor_pary = QColor(200, 200, 200, 120)
+        self.czy_plynie = 0
 
     def ustaw_przeplyw(self, plynie):
         self.czy_plynie = plynie
@@ -32,7 +33,11 @@ class Rura:
         painter.drawPath(path)
 
         # 2. Rysowanie cieczy w środku
-        if self.czy_plynie:
+        if self.czy_plynie == 1:
             pen_ciecz = QPen(self.kolor_cieczy, self.grubosc - 4, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+            painter.setPen(pen_ciecz)
+            painter.drawPath(path)
+        if self.czy_plynie == 2:
+            pen_ciecz = QPen(self.kolor_pary, self.grubosc - 4, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
             painter.setPen(pen_ciecz)
             painter.drawPath(path)
