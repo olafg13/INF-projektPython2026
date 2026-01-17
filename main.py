@@ -5,24 +5,26 @@ from zbiornik import Zbiornik
 from komorasilnika import Komora_silnika
 from kolo import Kolo
 from kociol import Kociol
+from korbowod import Korbowod
+from korbowod_przymocowany import KorbowodPrzymocowany
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QSlider
 from PyQt5.QtCore import Qt, QTimer, QPointF
 from PyQt5.QtGui import QPainter, QColor, QPen, QPainterPath, QFont
 WIDTH = 900
 HEIGHT = 600
-KOCIOL_POSX = WIDTH/3
+KOCIOL_POSX = WIDTH/5
 KOCIOL_POSY = 140+(HEIGHT/3)
-ZBIORNIK_POSX = WIDTH/3
+ZBIORNIK_POSX = WIDTH/5
 ZBIORNIK_POSY = HEIGHT/3
-KOMORA_POSX = WIDTH*2/3
+KOMORA_POSX = WIDTH*45/100
 KOMORA_POSY = HEIGHT/3
-PREDKOSC_SYMULACJI = 10
+PREDKOSC_SYMULACJI = 1
 
 # --- GŁÓWNA KLASA SYMULACJI ---
 class SymulacjaKaskady(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Zbiorniki")
+        self.setWindowTitle("Silnik Parowy")
         self.setFixedSize(WIDTH, HEIGHT)
         self.setStyleSheet("background-color: #2b2b2b;")
 
@@ -54,6 +56,13 @@ class SymulacjaKaskady(QWidget):
         
         # --- Konfiguracja Kol ---
         self.kolo = Kolo(int(KOMORA_POSX+self.k1.width/2), int(self.k1.y+200), nazwa="Kolo")
+
+        # --- Konifugracja Korbowod ---
+        self.korbowod1 = Korbowod(self.k1.punkt_srodek_tloka, self.kolo.punkt_zaczepienia)
+        self.korbowod2 = KorbowodPrzymocowany(int(KOMORA_POSX+200), int(KOMORA_POSY+43))
+        self.korbowod3 = Korbowod(self.kolo.punkt_zaczepienia, self.korbowod2.punkt_koniec)
+        self.korbowod4 = Korbowod(self.korbowod2.punkt_start, self.k1.punkt_polaczenie_korbowod)
+        self.korbowod = [self.korbowod1, self.korbowod2, self.korbowod3, self.korbowod4]
 
         # --- Przyciski ---
         self.btn = QPushButton("START", self)
@@ -93,7 +102,7 @@ class SymulacjaKaskady(QWidget):
 
         #Z1 -> WODA -> PARA -> WODA
         mnoznik = abs(self.z1.temperatura-100)
-        mnoznik = (math.sqrt(mnoznik)/10)*PREDKOSC_SYMULACJI
+        mnoznik = (math.sqrt(mnoznik)/5)*PREDKOSC_SYMULACJI
         if self.z1.temperatura >= 100:
             usunieto = self.z1.usun_ciecz(0.001*mnoznik)
             if usunieto != 0:
@@ -111,35 +120,41 @@ class SymulacjaKaskady(QWidget):
 
         # Z1 -> K1 + obrot kola
         plynie_1 = 0
+        pressure_modifier = 1.004**abs(self.z1.temperatura-100)
         if not self.k1.czy_pelny() and self.faza_doplywu :
-            ilosc = self.z1.usun_pare(self.flow_speed)
+            ilosc = self.z1.usun_pare(self.flow_speed*pressure_modifier)
             if ilosc > 0:
                 self.k1.dodaj_pare(ilosc)
-                self.kolo.usun_kat((ilosc/self.k1.pojemnosc)*180)
+                self.kolo.ustaw_kat(-self.k1.poziom_roboczy*180)
                 plynie_1 = 2
         elif self.k1.czy_pelny():
             self.faza_doplywu = False
-            self.kolo.ustaw_kat(180)
             plynie_1 = 0
         if self.faza_doplywu == False:
-            ilosc = self.k1.usun_pare(self.flow_speed)
-            self.kolo.usun_kat((ilosc/self.k1.pojemnosc)*180)
+            ilosc = self.k1.usun_pare(self.flow_speed*pressure_modifier)
+            self.kolo.ustaw_kat(self.k1.poziom_roboczy*180)
             if self.k1.czy_pusty():
                 self.faza_doplywu = True
-
         self.r1.ustaw_przeplyw(plynie_1)
 
-        
-        """
-        # Z2 -> Z3
-        plynie_2 = False
-        if self.z2.aktualna_ilosc > 5.0 and not self.z3.czy_pelny():
-            ilosc = self.z2.usun_ciecz(self.flow_speed)
-            self.z3.dodaj_ciecz(ilosc)
-            plynie_2 = True
-        self.rura2.ustaw_przeplyw(plynie_2)
+        #Kolo -> korbowod przymocowany
+        full_kat = 60
+        if self.kolo.kat <= 60 and self.kolo.kat > -120:
+            norm = abs(self.kolo.kat - 60)/180
+            kat = norm*full_kat - full_kat/2
+        else:
+            if self.kolo.kat < 0:
+                norm = abs(self.kolo.kat + 120)/180
+            else:
+                norm = abs(60+(180-self.kolo.kat))/180
+            kat = -norm*full_kat + full_kat/2
+        self.korbowod2.ustaw_kat(kat)
 
-        """
+        #korbowod przymocowany -> tlok wpuszczajacy/wypuszczajacy pare
+        if not (self.kolo.kat <= 60 and self.kolo.kat > -120):
+            norm = 1-norm
+        self.k1.ustaw_tlok_blok(norm)
+
         self.update()
 
     def paintEvent(self, event):
@@ -155,11 +170,8 @@ class SymulacjaKaskady(QWidget):
         for k in self.komory:
             k.draw(p)
         self.kociol.draw(p)
-        x1, y1 = self.k1.punkt_srodek_tloka()
-        x2, y2 = self.kolo.punkt_zaczepienia()
-        pen = QPen(Qt.gray, 6)
-        p.setPen(pen)
-        p.drawLine(x1,y1,x2,y2)
+        for korb in self.korbowod:
+            korb.draw(p)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

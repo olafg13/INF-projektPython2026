@@ -24,10 +24,9 @@ class Kolo:
 
     def punkt_zaczepienia(self):
         angle = (2*math.pi/360)*(self.kat-90)
-        p_x = int(self.x + 70*math.cos(angle))
-        p_y = int(self.y + 70*math.sin(angle))
+        p_x = int(self.x + 56*math.cos(angle))
+        p_y = int(self.y + 56*math.sin(angle))
         return (p_x, p_y)
-        
 
     def draw(self, painter):
         painter.save()
