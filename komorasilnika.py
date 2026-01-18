@@ -16,6 +16,7 @@ class Komora_silnika:
         self.poziom = 0.0
         self.poziom_roboczy = 0.0
         self.ustawienie_tloka_blok = 0.0
+        self.h_pary = 0
 
     def dodaj_pare(self, ilosc):
         wolne = self.pojemnosc - self.aktualna_ilosc

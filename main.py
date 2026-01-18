@@ -107,6 +107,22 @@ class SymulacjaKaskady(QWidget):
         self.btn1.setStyleSheet("background-color: yellow; color: black; font-size: 14px")
         self.btn1.clicked.connect(self.przelacz_symulacje)
 
+        btn_width = 125
+        self.btn2 = QPushButton("Dodaj 30% pary", self)
+        self.btn2.setGeometry(int(KOMORA1_POSX+self.k1.width/2-btn_width/2), HEIGHT-btn_height-margin, btn_width, btn_height)
+        self.btn2.setStyleSheet("background-color: green; color: black; font-size: 14px")
+        self.btn2.clicked.connect(lambda: self.k1.dodaj_pare(30))
+        
+        self.btn3 = QPushButton("Dodaj 30% pary", self)
+        self.btn3.setGeometry(int(KOMORA2_POSX+self.k2.width/2-btn_width/2), HEIGHT-btn_height-margin, btn_width, btn_height)
+        self.btn3.setStyleSheet("background-color: green; color: black; font-size: 14px")
+        self.btn3.clicked.connect(lambda: self.k2.dodaj_pare(30))
+
+        self.btn4 = QPushButton("Dodaj 30% pary", self)
+        self.btn4.setGeometry(int(KOMORA3_POSX+self.k3.width/2-btn_width/2), HEIGHT-btn_height-margin, btn_width, btn_height)
+        self.btn4.setStyleSheet("background-color: green; color: black; font-size: 14px")
+        self.btn4.clicked.connect(lambda: self.k3.dodaj_pare(30))
+
         # --- Suwaki ---
         self.suwak1 = QSlider(Qt.Horizontal, self)
         self.suwak1.setGeometry(int(KOCIOL_POSX), int(KOCIOL_POSY)+200, 100, 20)
@@ -115,13 +131,13 @@ class SymulacjaKaskady(QWidget):
         self.suwak1.valueChanged.connect(self.kociol.ustaw_temp)
 
         self.suwak2 = QSlider(Qt.Horizontal, self)
-        self.suwak2.setGeometry(int(margin+btn_width+margin), int(HEIGHT-margin-btn_height/2), 100, 20)
+        self.suwak2.setGeometry(int(margin+btn_width), int(HEIGHT-margin-btn_height/2), 100, 20)
         self.suwak2.setMinimum(0)
         self.suwak2.setMaximum(100)
         self.suwak2.valueChanged.connect(self.doplyw_wody)
         self.doplyw = 0
         podpis = QLabel("Dopływ wody", self)
-        podpis.move(int(margin+btn_width+margin), int(HEIGHT-margin-btn_height/2 -20))
+        podpis.move(int(margin+btn_width), int(HEIGHT-margin-btn_height/2 -20))
         font = QFont("Arial", 10, QFont.Bold)
         podpis.setStyleSheet("color: white;")
         podpis.setFont(font)
@@ -154,6 +170,8 @@ class SymulacjaKaskady(QWidget):
         if self.doplyw > 0:
             self.r4.ustaw_przeplyw(True)
             self.z1.dodaj_ciecz(self.doplyw)
+        if self.doplyw == 0:
+            self.r4.ustaw_przeplyw(False)
         
         #kociol -> Z1 TEMP
         if self.kociol.temperatura > self.z1.temperatura:
@@ -206,16 +224,15 @@ class SymulacjaKaskady(QWidget):
                 self.kolo1.ustaw_kat(-self.k1.poziom_roboczy*180)
                 self.kolo2.ustaw_kat(-self.k2.poziom_roboczy*180)
                 self.kolo3.ustaw_kat(-self.k3.poziom_roboczy*180)
-        else:
-            if self.k1.czy_pelny():
-                self.faza_doplywu1 = False
-                plynie_1 = 0
-            if self.k2.czy_pelny():
-                self.faza_doplywu2 = False
-                plynie_2 = 0
-            if self.k3.czy_pelny():
-                self.faza_doplywu3 = False
-                plynie_3 = 0
+        if self.k1.czy_pelny():
+            self.faza_doplywu1 = False
+            plynie_1 = 0
+        if self.k2.czy_pelny():
+            self.faza_doplywu2 = False
+            plynie_2 = 0
+        if self.k3.czy_pelny():
+            self.faza_doplywu3 = False
+            plynie_3 = 0
         if self.faza_doplywu1 == False:
             ilosc = self.k1.usun_pare(self.flow_speed*pressure_modifier)
             self.kolo1.ustaw_kat(self.k1.poziom_roboczy*180)
