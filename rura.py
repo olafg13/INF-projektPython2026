@@ -32,6 +32,14 @@ class Rura:
         painter.setBrush(Qt.NoBrush)
         painter.drawPath(path)
 
+    def draw_przeplyw(self,painter):
+        if len(self.punkty) < 2:
+            return
+
+        path = QPainterPath()
+        path.moveTo(self.punkty[0])
+        for p in self.punkty[1:]:
+            path.lineTo(p)
         # 2. Rysowanie cieczy w środku
         if self.czy_plynie == 1:
             pen_ciecz = QPen(self.kolor_cieczy, self.grubosc - 4, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
